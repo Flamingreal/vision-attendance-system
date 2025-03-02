@@ -1,0 +1,20 @@
+# Ignore Python cache and Jupyter checkpoints
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Ignore environment and dependency files
+venv/
+.env
+*.log
+
+# Ignore model and data files
+*.npy
+*.h5
+*.pkl
+data/
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
