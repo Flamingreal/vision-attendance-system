@@ -26,7 +26,7 @@ vision-attendance-system/
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vision-attendance-system.git
+   git clone https://github.com/Flamingreal/vision-attendance-system.git
    cd vision-attendance-system
    ```
 2. Install dependencies:
@@ -60,4 +60,4 @@ jupyter notebook src/match_faces.ipynb
 - [ ] Develop a GUI for easy interaction
 - [ ] Implement real-time camera feed integration
 or easier use
-- Support more real-time image processing techniques
+- [ ] Support more real-time image processing techniques
