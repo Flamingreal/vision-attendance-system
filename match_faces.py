@@ -1,50 +1,55 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import torch
+import sqlite3
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import cv2
 from scipy.spatial.distance import cosine
-import os
 
 # Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load FaceNet and MTCNN models
+# Load FaceNet model
 model = InceptionResnetV1(pretrained="vggface2").to(device).eval()
 mtcnn = MTCNN(keep_all=False, device=device)
 
-# Path to stored embeddings
-embeddings_path = r"C:\Code\vision-attendance-system\face_embeddings.npy"
+# SQLite database path
+DB_PATH = "data/attendance.db"
 
-# Load stored embeddings if exists, else create an empty dictionary
-if os.path.exists(embeddings_path):
-    face_embeddings = np.load(embeddings_path, allow_pickle=True).item()
-else:
-    face_embeddings = {}
+# Load stored embeddings from database
+def get_all_students():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name, embedding FROM students")
+    students = cursor.fetchall()
+    conn.close()
 
-# Threshold
-THRESHOLD = 0.3  
+    student_dict = {}
+    for name, embedding_bytes in students:
+        embedding = np.frombuffer(embedding_bytes, dtype=np.float32)  # Decode numpy array
+        student_dict[name] = embedding
+    return student_dict
+
+THRESHOLD = 0.3  # Recommended threshold
 
 def match_face(image_path):
+    """Detects a face from the image and matches it against stored embeddings"""
     img_bgr = cv2.imread(image_path)
     if img_bgr is None:
-        return "Error: Cannot read image.", None
+        print("Cannot read image.")
+        return None, None
 
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     face = mtcnn(img_rgb)
     if face is None:
-        return "No face detected.", None
+        print("No face detected.")
+        return None, None
 
-    # Extract embedding
     with torch.no_grad():
-        embedding = model(face.unsqueeze(0).to(device)).cpu().numpy().flatten()
+        embedding = model(face.unsqueeze(0)).cpu().numpy().flatten()
 
-    # Find the best match
+    # Load database embeddings
+    face_embeddings = get_all_students()
+
     best_match = None
     min_distance = float("inf")
 
@@ -55,32 +60,16 @@ def match_face(image_path):
             best_match = person_id
 
     if min_distance < THRESHOLD:
+        record_attendance(best_match)
         return best_match, min_distance
     else:
-        return "Unknown", min_distance
+        return None, min_distance
 
-def add_new_face(image_path, person_id):
-    img_bgr = cv2.imread(image_path)
-    if img_bgr is None:
-        return "Error: Cannot read image."
-
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    face = mtcnn(img_rgb)
-    if face is None:
-        return "No face detected."
-
-    # Extract embedding
-    with torch.no_grad():
-        embedding = model(face.unsqueeze(0).to(device)).cpu().numpy().flatten()
-
-    # Store new embedding
-    face_embeddings[person_id] = embedding
-    np.save(embeddings_path, face_embeddings)
-    return f"New face added: {person_id}"
-
-
-# In[ ]:
-
-
-
-
+def record_attendance(student_name):
+    """Records attendance for the recognized student"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO attendance_records (student_name) VALUES (?)", (student_name,))
+    conn.commit()
+    conn.close()
+    print(f"Attendance recorded for {student_name}.")
