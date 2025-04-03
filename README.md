@@ -1,63 +1,71 @@
 # Vision-Based Attendance System
 
 ## Overview
-This project implements a facial recognition-based attendance system using FaceNet and MTCNN. It matches real-time captured images with a stored reference database of face embeddings.
+A real-time facial recognition attendance system with a **multi-role login interface**. Built using **PyQt5**, **FaceNet**, and **MTCNN**, this system allows **students**, **teachers**, **administrators**, and **developers** to interact with the attendance platform according to their roles.
 
-## Features
-- Face detection using MTCNN
-- Face recognition using FaceNet (pretrained model)
-- Embeddings stored in `face_embeddings.npy`
-- Matching captured images with reference images
+## Key Features
+- Real-time face detection using **MTCNN**
+- Face recognition powered by **pretrained FaceNet**
+- **SQLite** database for users, embeddings, and attendance
+- **Multi-role login system** (Student, Teacher, Admin, Developer)
+- Role-based UI via **PyQt5** modular design
+- Role-specific features:
+  - Student: View personal attendance logs
+  - Teacher: Manage student records
+  - Admin: Manage users and assign roles
+  - Developer: Test features and view internal data
 
 ## Folder Structure
 ```
 vision-attendance-system/
-│── data/
-│   │── reference_faces/  # Reference images for known individuals
-│   │── test_reference_images/  # Used for initial embedding creation
-│   │── captured_faces/  # Images captured during attendance
-│   │── face_embeddings.npy  # Stored facial embeddings
-│── src/
-│   │── extract_embeddings.ipynb  # Generates embeddings for reference images
-│   │── match_faces.ipynb  # Matches captured images with stored embeddings
-│── README.md  # Project documentation
+├── ui/                        # All UI components
+│   ├── login_dialog.py
+│   ├── dashboard_page.py
+│   ├── student_page.py
+│   ├── teacher_page.py
+│   ├── admin_page.py
+│   ├── developer_page.py
+│   └── manage_face_dialog.py
+├── face_models.py            # FaceNet embedding logic
+├── match_faces.py            # Face comparison
+├── camera.py                 # Camera feed handler
+├── database.py               # Database operations (SQLite)
+├── main_window.py            # Central controller (QMainWindow)
+├── main.py                   # Application entry point
+├── attendance_system.db      # SQLite3 database file
+└── README.md
 ```
 
 ## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Flamingreal/vision-attendance-system.git
-   cd vision-attendance-system
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Download the pretrained FaceNet model:
-   ```bash
-   # Model will be downloaded automatically when running the code
-   ```
+```bash
+git clone https://github.com/Flamingreal/vision-attendance-system.git
+cd vision-attendance-system
+pip install -r requirements.txt
+```
 
 ## Usage
-### 1. Create Embeddings
-Run the notebook to generate face embeddings for reference images:
 ```bash
-jupyter notebook src/extract_embeddings.ipynb
+python main.py
 ```
+The application launches with a dashboard. Click **Login** to access role-specific features.
 
-### 2. Match Captured Faces
-Run the notebook to recognize faces from captured images:
-```bash
-jupyter notebook src/match_faces.ipynb
-```
+## Default Users
+| Username | Password | Role      |
+|----------|----------|-----------|
+| alice    | 1234     | student   |
+| bob      | 5678     | teacher   |
+| admin    | admin    | admin     |
+| dev      | devmode  | developer |
 
-## To-Do List
-### Database
-- [ ] Optimize storage for embeddings
-- [ ] Improve face matching accuracy
+> You can create or manage users using the **Admin** role.
 
-### UI
-- [ ] Develop a GUI for easy interaction
-- [ ] Implement real-time camera feed integration
-or easier use
-- [ ] Support more real-time image processing techniques
+## Notes
+- Embeddings are generated via `facenet-pytorch`
+- Attendance is logged automatically on successful face match
+- Face and attendance data is stored in `attendance_system.db`
+
+## To-Do
+- [ ] UI beautification & responsive layout
+- [ ] Export attendance records (CSV, Excel)
+- [ ] Pagination / filtering for large logs
+- [ ] Add face via webcam in all roles (not just Admin)
