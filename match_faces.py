@@ -7,7 +7,7 @@ from face_models import extract_embedding
 import sqlite3
 
 # Path to the SQLite database
-DATABASE_PATH = "face_database.db"
+DATABASE_PATH = "attendance_system.db"
 
 THRESHOLD = 0.3  # Distance threshold for face match
 

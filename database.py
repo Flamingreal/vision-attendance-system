@@ -1,7 +1,8 @@
 import sqlite3
 from datetime import datetime
+from typing import Optional
 
-DATABASE_PATH = "face_database.db"
+DATABASE_PATH = "attendance_system.db"
 
 class DatabaseManager:
     def __init__(self, db_path=DATABASE_PATH):
@@ -25,7 +26,21 @@ class DatabaseManager:
                 timestamp TEXT NOT NULL
             )
         """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL
+            )
+        """)
         self.conn.commit()
+
+        if not self.get_all_users():
+            self.add_user("alice", "1234", "Student")
+            self.add_user("bob", "5678", "Teacher")
+            self.add_user("admin", "admin", "Admin")
+            self.add_user("dev", "devmode", "Developer")
 
     def add_new_face(self, name: str, embedding: bytes) -> bool:
         if self.face_exists(name):
@@ -70,6 +85,43 @@ class DatabaseManager:
     def get_attendance_records(self) -> list[tuple[str, str]]:
         self.cursor.execute("SELECT name, timestamp FROM attendance ORDER BY timestamp DESC")
         return self.cursor.fetchall()
+
+    def get_all_users(self) -> list[tuple[str, str]]:
+        """
+        Return all users as (username, role) pairs.
+        """
+        self.cursor.execute("SELECT username, role FROM users ORDER BY username ASC")
+        return self.cursor.fetchall()
+
+    def update_user_role(self, username: str, new_role: str) -> bool:
+        """
+        Update a user's role. Returns True if updated successfully.
+        """
+        self.cursor.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
+        self.conn.commit()
+        return self.cursor.rowcount > 0
+
+    def get_user_role(self, username: str, password: str) -> Optional[str]:
+        """
+        Return the role if username/password matches, else None.
+        """
+        self.cursor.execute(
+            "SELECT role FROM users WHERE username = ? AND password = ?",
+            (username, password)
+        )
+        row = self.cursor.fetchone()
+        return row[0] if row else None
+
+    def add_user(self, username: str, password: str, role: str) -> bool:
+        """
+        Add a new user with the given role. Returns False if username already exists.
+        """
+        try:
+            self.cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, password, role))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
 
     def close(self):
         self.conn.close()

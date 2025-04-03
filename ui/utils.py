@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMessageBox, QInputDialog
 import cv2
-
+from PyQt5.QtWidgets import QDialog
 
 def show_info_message(parent, title, message):
     """
@@ -8,20 +8,17 @@ def show_info_message(parent, title, message):
     """
     QMessageBox.information(parent, title, message)
 
-
 def show_warning_message(parent, title, message):
     """
     Show a warning message box.
     """
     QMessageBox.warning(parent, title, message)
 
-
 def show_error_message(parent, title, message):
     """
     Show an error message box.
     """
     QMessageBox.critical(parent, title, message)
-
 
 def get_text_input(parent, title, label):
     """
@@ -30,14 +27,9 @@ def get_text_input(parent, title, label):
     """
     return QInputDialog.getText(parent, title, label)
 
-
 def get_selection_input(parent, title, label, items):
-    """
-    Prompt the user to select from a list of items.
-    Returns a tuple (selection, ok).
-    """
-    return QInputDialog.getItem(parent, title, label, items, editable=False)
-
+    item, ok = QInputDialog.getItem(parent, title, label, items, 0, False)
+    return item, ok
 
 def load_rgb_image(path: str):
     """
