@@ -1,6 +1,7 @@
+PyQt5
 numpy
 torch
 torchvision
 facenet-pytorch
 opencv-python
-cipy
+scipy

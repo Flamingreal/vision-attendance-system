@@ -33,7 +33,10 @@ def match_face(image_path):
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     embedding = extract_embedding(img_rgb)
     if embedding is None:
+        print("[DEBUG] No face detected from input frame.")
         return None, None
+
+    print("[DEBUG] Extracted embedding shape:", embedding.shape)
 
     # Compare with embeddings in the database
     conn = sqlite3.connect(DATABASE_PATH)
@@ -45,6 +48,7 @@ def match_face(image_path):
     for name, blob in cursor.fetchall():
         stored_embedding = np.frombuffer(blob, dtype=np.float32)
         distance = cosine(embedding.cpu().numpy(), stored_embedding)
+        print(f"[DEBUG] Comparing with {name}, distance = {distance:.4f}")
         if distance < best_distance:
             best_distance = distance
             best_match = name

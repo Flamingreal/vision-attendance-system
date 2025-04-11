@@ -36,6 +36,7 @@ class DatabaseManager:
         """)
         self.conn.commit()
 
+        # Create default users if not present
         if not self.get_all_users():
             self.add_user("alice", "1234", "Student")
             self.add_user("bob", "5678", "Teacher")
@@ -59,10 +60,16 @@ class DatabaseManager:
         self.conn.commit()
         return self.cursor.rowcount > 0
 
+    def rename_face(self, old_name: str, new_name: str) -> bool:
+        if self.face_exists(new_name):
+            return False
+        self.cursor.execute("UPDATE faces SET name = ? WHERE name = ?", (new_name, old_name))
+        self.conn.commit()
+        return self.cursor.rowcount > 0
+
     def view_faces(self) -> list[str]:
         self.cursor.execute("SELECT name FROM faces")
-        rows = self.cursor.fetchall()
-        return [row[0] for row in rows]
+        return [row[0] for row in self.cursor.fetchall()]
 
     def get_embedding_by_name(self, name: str):
         self.cursor.execute("SELECT embedding FROM faces WHERE name = ?", (name,))
@@ -86,25 +93,34 @@ class DatabaseManager:
         self.cursor.execute("SELECT name, timestamp FROM attendance ORDER BY timestamp DESC")
         return self.cursor.fetchall()
 
+    def get_attendance_records_with_id(self) -> list[tuple[int, str, str]]:
+        self.cursor.execute("SELECT id, name, timestamp FROM attendance ORDER BY timestamp DESC")
+        return self.cursor.fetchall()
+
+    def delete_attendance_record_by_id(self, record_id: int) -> bool:
+        self.cursor.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+        self.conn.commit()
+        return self.cursor.rowcount > 0
+
+    def search_attendance(self, keyword: str) -> list[tuple[int, str, str]]:
+        pattern = f"%{keyword}%"
+        self.cursor.execute("""
+            SELECT id, name, timestamp FROM attendance
+            WHERE name LIKE ? OR timestamp LIKE ?
+            ORDER BY timestamp DESC
+        """, (pattern, pattern))
+        return self.cursor.fetchall()
+
     def get_all_users(self) -> list[tuple[str, str]]:
-        """
-        Return all users as (username, role) pairs.
-        """
         self.cursor.execute("SELECT username, role FROM users ORDER BY username ASC")
         return self.cursor.fetchall()
 
     def update_user_role(self, username: str, new_role: str) -> bool:
-        """
-        Update a user's role. Returns True if updated successfully.
-        """
         self.cursor.execute("UPDATE users SET role = ? WHERE username = ?", (new_role, username))
         self.conn.commit()
         return self.cursor.rowcount > 0
 
     def get_user_role(self, username: str, password: str) -> Optional[str]:
-        """
-        Return the role if username/password matches, else None.
-        """
         self.cursor.execute(
             "SELECT role FROM users WHERE username = ? AND password = ?",
             (username, password)
@@ -113,11 +129,11 @@ class DatabaseManager:
         return row[0] if row else None
 
     def add_user(self, username: str, password: str, role: str) -> bool:
-        """
-        Add a new user with the given role. Returns False if username already exists.
-        """
         try:
-            self.cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (username, password, role))
+            self.cursor.execute(
+                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                (username, password, role)
+            )
             self.conn.commit()
             return True
         except sqlite3.IntegrityError:

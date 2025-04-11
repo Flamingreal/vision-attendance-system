@@ -1,19 +1,22 @@
 import cv2
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QPushButton, QVBoxLayout,
-    QHBoxLayout, QFileDialog, QSizePolicy
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout,
+    QFileDialog, QPushButton, QSizePolicy
 )
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
 from ui.camera import Camera
 from match_faces import match_face
 from ui.utils import show_warning_message
+import time
+
 
 class DashboardPage(QWidget):
-    def __init__(self, db, switch_to_login_callback):
+    def __init__(self, db):
         super().__init__()
         self.db = db
-        self.switch_to_login_callback = switch_to_login_callback
+
+        self.last_signed_time = {}
 
         self.camera = Camera()
         self.camera.frame_signal.connect(self.update_camera_frame)
@@ -24,26 +27,22 @@ class DashboardPage(QWidget):
     def init_ui(self):
         self.layout = QHBoxLayout(self)
 
-        # Left: Camera/image view
+        # Left side: Camera or Image
         self.image_label = QLabel("No image/camera feed")
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.layout.addWidget(self.image_label)
 
-        # Right: Buttons panel
+        # Right side: Control Panel
         self.control_panel = QVBoxLayout()
 
         self.result_label = QLabel("Recognition Result: None")
         self.result_label.setAlignment(Qt.AlignCenter)
         self.control_panel.addWidget(self.result_label)
 
-        self.load_button = QPushButton("Load Image")
-        self.load_button.clicked.connect(self.load_and_recognize)
-        self.control_panel.addWidget(self.load_button)
-
-        self.enter_login_button = QPushButton("Enter Management")
-        self.enter_login_button.clicked.connect(self.switch_to_login_callback)
-        self.control_panel.addWidget(self.enter_login_button)
+        # self.load_button = QPushButton("Load Image")  # Temporarily removed
+        # self.load_button.clicked.connect(self.load_and_recognize)
+        # self.control_panel.addWidget(self.load_button)
 
         self.layout.addLayout(self.control_panel)
 
@@ -53,6 +52,22 @@ class DashboardPage(QWidget):
             pixmap = QPixmap.fromImage(qt_frame)
             self.image_label.setPixmap(pixmap.scaled(
                 self.image_label.width(), self.image_label.height(), Qt.KeepAspectRatio))
+
+            cv2.imwrite("temp.jpg", frame)
+            matched_id, distance = match_face("temp.jpg")
+
+            if matched_id:
+                now = time.time()
+                last_time = self.last_signed_time.get(matched_id, 0)
+
+                if now - last_time >= 30:
+                    self.db.add_attendance_record(matched_id)
+                    self.last_signed_time[matched_id] = now
+                    print(f"[DEBUG] Signed: {matched_id}")
+                    self.result_label.setText(f"Recognition Result: {matched_id} (Signed)")
+                else:
+                    print(f"[DEBUG] Skipped duplicate sign-in for {matched_id}")
+                    self.result_label.setText(f"Already Signed Recently: {matched_id}")
 
     def load_and_recognize(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Images (*.png *.jpg *.jpeg)")

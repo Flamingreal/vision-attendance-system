@@ -60,5 +60,6 @@ class CaptureFaceDialog(QDialog):
         return self.captured_image
 
     def closeEvent(self, event):
-        self.camera.stop()
-        event.accept()
+        if hasattr(self, 'camera'):
+            self.camera.stop()
+        super().closeEvent(event)

@@ -25,7 +25,7 @@ def extract_embedding(image_rgb):
     # Detect face
     face = mtcnn(image_rgb)
     if face is None:
-        print("⚠️ No face detected.")
+        print("No face detected.")
         return None
 
     face = face.to(device)
