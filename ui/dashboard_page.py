@@ -66,7 +66,7 @@ class DashboardPage(QWidget):
                     print(f"[DEBUG] Signed: {matched_id}")
                     self.result_label.setText(f"Recognition Result: {matched_id} (Signed)")
                 else:
-                    print(f"[DEBUG] Skipped duplicate sign-in for {matched_id}")
+                    #print(f"[DEBUG] Skipped duplicate sign-in for {matched_id}")
                     self.result_label.setText(f"Already Signed Recently: {matched_id}")
 
     def load_and_recognize(self):

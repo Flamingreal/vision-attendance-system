@@ -51,13 +51,17 @@ class CaptureFaceDialog(QDialog):
             rgb_image = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2RGB)
             embedding = extract_embedding(rgb_image)
             if embedding is not None:
-                self.captured_image = embedding
+                self.captured_image = rgb_image
+                self.embedding = embedding
                 self.accept()
             else:
                 QMessageBox.warning(self, "Error", "No face detected in the captured image.")
 
     def get_embedding(self):
         return self.captured_image
+
+    def get_captured_image(self):
+        return self.captured_image if hasattr(self, "captured_image") else None
 
     def closeEvent(self, event):
         if hasattr(self, 'camera'):

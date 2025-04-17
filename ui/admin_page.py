@@ -6,6 +6,8 @@ from ui.utils import load_rgb_image, show_info_message, show_warning_message
 from face_models import extract_embedding
 from ui.capture_face_dialog import CaptureFaceDialog
 from database import DatabaseManager
+from PyQt5.QtWidgets import QDateEdit
+import csv
 
 
 class AdminPage(QWidget):
@@ -90,19 +92,101 @@ class AdminPage(QWidget):
             self.show_face_list()
 
     def show_attendance(self):
+        # Hide face management buttons
         self.add_btn.hide()
         self.del_btn.hide()
         self.update_btn.hide()
         self.view_btn.hide()
         self.clear_controls()
+
+        # Filter section layout
+        filter_layout = QHBoxLayout()
+
+        # Name filter input
+        name_input = QLineEdit()
+        name_input.setPlaceholderText("Enter name")
+        filter_layout.addWidget(name_input)
+
+        # Date filter input
+        date_input = QDateEdit()
+        date_input.setDisplayFormat("yyyy-MM-dd")
+        date_input.setCalendarPopup(True)
+        filter_layout.addWidget(date_input)
+
+        # Search button
+        search_btn = QPushButton("Search")
+        filter_layout.addWidget(search_btn)
+
+        # Export button
+        export_btn = QPushButton("Export CSV")
+        filter_layout.addWidget(export_btn)
+
+        # Delete button
+        delete_btn = QPushButton("Delete Selected")
+        filter_layout.addWidget(delete_btn)
+
+        self.control_layout.addLayout(filter_layout)
+
+        # Table setup
         records = self.db.get_attendance_records()
         self.table.clearContents()
         self.table.setRowCount(len(records))
-        self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(["Name", "Timestamp"])
-        for row, (name, timestamp) in enumerate(records):
-            self.table.setItem(row, 0, QTableWidgetItem(name))
-            self.table.setItem(row, 1, QTableWidgetItem(timestamp))
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["ID", "Name", "Timestamp"])
+        self.table.setColumnHidden(0, True)
+
+        for row, (id_, name, timestamp) in enumerate(records):
+            self.table.setItem(row, 0, QTableWidgetItem(str(id_)))
+            self.table.setItem(row, 1, QTableWidgetItem(name))
+            self.table.setItem(row, 2, QTableWidgetItem(timestamp))
+
+        # Search logic
+        def apply_filters():
+            name = name_input.text().strip()
+            date = date_input.date().toString("yyyy-MM-dd")
+            if not name:
+                name = None
+            if not date_input.date().isValid():
+                date = None
+            filtered = self.db.get_attendance_records(name=name, date=date)
+
+            self.table.setRowCount(len(filtered))
+            for row, (id_, name, timestamp) in enumerate(filtered):
+                self.table.setItem(row, 0, QTableWidgetItem(str(id_)))
+                self.table.setItem(row, 1, QTableWidgetItem(name))
+                self.table.setItem(row, 2, QTableWidgetItem(timestamp))
+
+        search_btn.clicked.connect(apply_filters)
+
+        # Export logic
+        def export_csv():
+            path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "CSV Files (*.csv)")
+            if path:
+                with open(path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["ID", "Name", "Timestamp"])
+                    for row in range(self.table.rowCount()):
+                        row_data = [self.table.item(row, col).text() for col in range(3)]
+                        writer.writerow(row_data)
+                show_info_message(self, "Exported", f"File saved to {path}")
+
+        export_btn.clicked.connect(export_csv)
+
+        # Delete logic
+        def delete_selected():
+            selected = self.table.currentRow()
+            if selected < 0:
+                show_info_message(self, "Error", "Please select a row to delete.")
+                return
+            record_id = self.table.item(selected, 0).text()
+            confirm = QMessageBox.question(self, "Confirm", f"Delete record ID {record_id}?",
+                                           QMessageBox.Yes | QMessageBox.No)
+            if confirm == QMessageBox.Yes:
+                self.db.cursor.execute("DELETE FROM attendance WHERE id = ?", (record_id,))
+                self.db.conn.commit()
+                apply_filters()
+
+        delete_btn.clicked.connect(delete_selected)
 
     def show_add_face(self):
         self.clear_controls()

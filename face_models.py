@@ -20,7 +20,7 @@ def extract_embedding(image_rgb):
     Returns:
         torch.Tensor or None: Facial embedding tensor, or None if no face detected.
     """
-    print("[DEBUG] extract_embedding called with:", type(image_rgb))
+    #print("[DEBUG] extract_embedding called with:", type(image_rgb))
 
     # Detect face
     face = mtcnn(image_rgb)
@@ -32,5 +32,5 @@ def extract_embedding(image_rgb):
     with torch.no_grad():
         embedding = resnet(face.unsqueeze(0)).squeeze(0)
 
-    print("[DEBUG] embedding shape:", embedding.shape)
+    #print("[DEBUG] embedding shape:", embedding.shape)
     return embedding

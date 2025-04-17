@@ -37,11 +37,12 @@ class DatabaseManager:
         self.conn.commit()
 
         # Create default users if not present
-        if not self.get_all_users():
-            self.add_user("alice", "1234", "Student")
-            self.add_user("bob", "5678", "Teacher")
-            self.add_user("admin", "admin", "Admin")
-            self.add_user("dev", "devmode", "Developer")
+        # if not self.get_all_users():
+        #     # Default test accounts, useful for future login features
+        #     self.add_user("alice", "1234", "Student")
+        #     self.add_user("bob", "5678", "Teacher")
+        #     self.add_user("admin", "admin", "Admin")
+        #     self.add_user("dev", "devmode", "Developer")
 
     def add_new_face(self, name: str, embedding: bytes) -> bool:
         if self.face_exists(name):
@@ -89,8 +90,29 @@ class DatabaseManager:
         self.cursor.execute("INSERT INTO attendance (name, timestamp) VALUES (?, ?)", (name, timestamp))
         self.conn.commit()
 
-    def get_attendance_records(self) -> list[tuple[str, str]]:
-        self.cursor.execute("SELECT name, timestamp FROM attendance ORDER BY timestamp DESC")
+    def get_attendance_records(self, name: Optional[str] = None, date: Optional[str] = None) -> list[
+        tuple[int, str, str]]:
+        """
+        Retrieve attendance records, optionally filtered by name and date.
+        Date format should be 'YYYY-MM-DD'.
+        """
+        query = "SELECT id, name, timestamp FROM attendance"
+        conditions = []
+        values = []
+
+        if name:
+            conditions.append("name = ?")
+            values.append(name)
+        if date:
+            conditions.append("DATE(timestamp) = ?")
+            values.append(date)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY timestamp DESC"
+
+        self.cursor.execute(query, values)
         return self.cursor.fetchall()
 
     def get_attendance_records_with_id(self) -> list[tuple[int, str, str]]:
