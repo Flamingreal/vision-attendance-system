@@ -58,6 +58,8 @@ class Camera(QObject):
         self.running = False
         if self.capture.isOpened():
             self.capture.release()
+        if self.thread and self.thread.is_alive():
+            self.thread.join()
 
     def is_running(self):
         return self.running

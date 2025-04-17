@@ -82,6 +82,11 @@ class AdminPage(QWidget):
         self.table.clearContents()
         self.table.setRowCount(0)
 
+        # Reset table structure
+        self.table.setColumnCount(1)
+        self.table.setHorizontalHeaderLabels(["Names"])
+        self.table.setColumnHidden(0, False)
+
         if mode == 'add':
             self.show_add_face()
         elif mode == 'delete':
